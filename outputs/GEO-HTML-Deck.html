@@ -1,0 +1,1349 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GEO HTML Deck</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f6f0e6;
+      --ink: #171411;
+      --muted: #635d52;
+      --line: rgba(23, 20, 17, .16);
+      --panel: rgba(255, 252, 244, .78);
+      --panel-strong: rgba(255, 244, 235, .88);
+      --accent: #ff6b35;
+      --blue: #0f6b8f;
+      --green: #3f7d4a;
+      --shadow: 0 30px 90px rgba(48, 38, 27, .18);
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--paper);
+      color: var(--ink);
+    }
+
+    body { min-width: 320px; }
+
+    #deck {
+      position: fixed;
+      inset: 0;
+      isolation: isolate;
+      background:
+        linear-gradient(120deg, rgba(255,255,255,.66), rgba(255,255,255,0) 48%),
+        radial-gradient(circle at 82% 14%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 30%),
+        var(--paper);
+    }
+
+    #motion-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      width: 100%;
+      height: 100%;
+      opacity: .58;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      padding: clamp(20px, 3.7vw, 54px);
+      opacity: 0;
+      transform: translate3d(0, 24px, 0) scale(.986);
+      filter: blur(12px);
+      pointer-events: none;
+      transition:
+        opacity 620ms cubic-bezier(.2,.8,.2,1),
+        transform 760ms cubic-bezier(.2,.8,.2,1),
+        filter 760ms cubic-bezier(.2,.8,.2,1);
+    }
+
+    .slide.is-active {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+      filter: blur(0);
+      pointer-events: auto;
+    }
+
+    .slide.is-before { transform: translate3d(-32px, 0, 0) scale(.982); }
+    .slide.is-after { transform: translate3d(36px, 14px, 0) scale(.984); }
+
+    .frame {
+      position: relative;
+      width: min(1500px, 100%);
+      aspect-ratio: 16 / 9;
+      max-height: calc(100vh - clamp(42px, 7.4vw, 112px));
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(18px, 3vw, 42px);
+      align-content: center;
+    }
+
+    .frame.split {
+      grid-template-columns: minmax(0, .9fr) minmax(330px, .8fr);
+      align-items: center;
+      gap: clamp(28px, 5vw, 76px);
+    }
+
+    .kicker {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: clamp(13px, 1vw, 16px);
+      font-weight: 800;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      margin-bottom: 22px;
+      font-size: clamp(56px, 8vw, 126px);
+      line-height: .92;
+      font-weight: 860;
+    }
+
+    h2 {
+      margin-bottom: 22px;
+      font-size: clamp(36px, 5.2vw, 78px);
+      line-height: 1.02;
+      font-weight: 760;
+    }
+
+    h3 {
+      margin-bottom: 14px;
+      font-size: clamp(24px, 2.2vw, 34px);
+      line-height: 1.08;
+    }
+
+    .lead {
+      color: var(--muted);
+      font-size: clamp(20px, 2.1vw, 30px);
+      line-height: 1.36;
+      max-width: 900px;
+    }
+
+    .statement {
+      padding: clamp(22px, 3vw, 36px);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      border-radius: 8px;
+      backdrop-filter: blur(14px);
+    }
+
+    .statement strong {
+      display: block;
+      margin-bottom: 12px;
+      font-size: clamp(26px, 3vw, 42px);
+      line-height: 1.12;
+    }
+
+    .statement span {
+      color: var(--muted);
+      font-size: clamp(18px, 1.65vw, 24px);
+      line-height: 1.38;
+    }
+
+    .grid-3,
+    .grid-4,
+    .grid-5 {
+      display: grid;
+      gap: clamp(16px, 2vw, 24px);
+    }
+
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .grid-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+    .card,
+    .step,
+    .week,
+    .source-box {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.56);
+      border-radius: 8px;
+      backdrop-filter: blur(12px);
+    }
+
+    .card {
+      min-height: 180px;
+      padding: clamp(20px, 2vw, 28px);
+    }
+
+    .card.accent,
+    .step.accent,
+    .week.accent {
+      background: var(--panel-strong);
+      border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+    }
+
+    .card p,
+    .step p,
+    .week p,
+    .source-box p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: clamp(16px, 1.45vw, 21px);
+      line-height: 1.38;
+    }
+
+    .card ul,
+    .source-box ul {
+      margin: 0;
+      padding-left: 1.1em;
+      color: var(--muted);
+      font-size: clamp(16px, 1.45vw, 21px);
+      line-height: 1.42;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: clamp(18px, 2vw, 28px);
+      align-items: stretch;
+    }
+
+    .step {
+      min-height: 240px;
+      padding: clamp(18px, 2vw, 26px);
+      position: relative;
+    }
+
+    .step:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -26px;
+      top: 48%;
+      color: rgba(23, 20, 17, .28);
+      font-size: 32px;
+      font-weight: 700;
+    }
+
+    .num {
+      display: block;
+      margin-bottom: 22px;
+      color: var(--accent);
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: clamp(24px, 4vw, 60px);
+    }
+
+    .compare .card {
+      min-height: 430px;
+      padding: clamp(28px, 4vw, 46px);
+    }
+
+    .compare h3 {
+      font-size: clamp(38px, 4.8vw, 66px);
+    }
+
+    .journey {
+      padding: clamp(18px, 2vw, 26px);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 16px;
+      text-align: center;
+    }
+
+    .journey .node {
+      padding: 12px 18px;
+      background: rgba(255,255,255,.72);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: clamp(18px, 1.8vw, 27px);
+      font-weight: 700;
+    }
+
+    .journey .arrow {
+      color: var(--accent);
+      font-size: 28px;
+      line-height: .8;
+    }
+
+    .arrow-mid {
+      display: grid;
+      place-items: center;
+      color: rgba(23,20,17,.28);
+      font-size: clamp(42px, 5vw, 72px);
+      font-weight: 500;
+    }
+
+    .before-after {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 90px minmax(0, 1fr);
+      gap: clamp(18px, 3vw, 42px);
+      align-items: center;
+    }
+
+    .weeks {
+      display: grid;
+      gap: 18px;
+    }
+
+    .week {
+      display: grid;
+      grid-template-columns: 132px 240px minmax(0, 1fr);
+      gap: 28px;
+      align-items: center;
+      min-height: 86px;
+      padding: 18px 28px;
+    }
+
+    .week b {
+      color: var(--accent);
+      font-size: clamp(21px, 1.7vw, 26px);
+    }
+
+    .week h3 {
+      margin: 0;
+      font-size: clamp(21px, 1.8vw, 28px);
+    }
+
+    .source-layout {
+      display: grid;
+      grid-template-columns: minmax(0, .9fr) minmax(380px, .88fr);
+      gap: clamp(28px, 5vw, 76px);
+      align-items: start;
+    }
+
+    .source-box {
+      padding: clamp(24px, 3vw, 38px);
+    }
+
+    .source-box a {
+      color: var(--ink);
+      text-decoration-color: color-mix(in srgb, var(--accent) 65%, transparent);
+      text-underline-offset: 4px;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translate3d(0, 18px, 0);
+      filter: blur(8px);
+      transition:
+        opacity 560ms ease,
+        transform 680ms cubic-bezier(.2,.8,.2,1),
+        filter 680ms ease;
+      transition-delay: calc(var(--stagger, 0) * 70ms);
+    }
+
+    .reveal.is-step-on {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+      filter: blur(0);
+    }
+
+    .controls {
+      position: fixed;
+      right: 16px;
+      bottom: 22px;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px;
+      border: 1px solid rgba(23,20,17,.14);
+      border-radius: 999px;
+      background: rgba(255,252,244,.84);
+      box-shadow: 0 12px 34px rgba(23,20,17,.13);
+      backdrop-filter: blur(14px);
+    }
+
+    .controls button,
+    .comment-pop button {
+      appearance: none;
+      border: 0;
+      min-width: 36px;
+      height: 36px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--ink);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .controls button:hover,
+    .controls button.is-on {
+      background: color-mix(in srgb, var(--accent) 18%, white);
+    }
+
+    .counter {
+      min-width: 62px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .progress {
+      position: fixed;
+      left: 18px;
+      right: 18px;
+      bottom: 12px;
+      height: 2px;
+      z-index: 25;
+      background: rgba(23,20,17,.12);
+      overflow: hidden;
+    }
+
+    .progress span {
+      display: block;
+      width: 0;
+      height: 100%;
+      background: var(--accent);
+      transition: width 320ms ease;
+    }
+
+    .transition-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .zoom-surface,
+    .morph-surface,
+    .line-surface {
+      position: fixed;
+      z-index: 41;
+      pointer-events: none;
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--accent) 24%, white);
+      box-shadow: var(--shadow);
+    }
+
+    .line-surface {
+      inset: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .line-surface::before {
+      content: "";
+      position: absolute;
+      left: 10vw;
+      top: 53vh;
+      width: 0;
+      height: 2px;
+      background: var(--accent);
+      animation: drawLine 720ms cubic-bezier(.2,.8,.2,1) forwards;
+    }
+
+    @keyframes drawLine { to { width: 80vw; } }
+
+    .review-mode [data-reviewable]:hover {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+      cursor: crosshair;
+    }
+
+    .pin {
+      position: fixed;
+      z-index: 34;
+      width: 24px;
+      height: 24px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 900;
+      box-shadow: 0 8px 24px rgba(23,20,17,.24);
+      cursor: pointer;
+      transform: translate(-50%, -50%);
+    }
+
+    .comment-pop {
+      position: fixed;
+      z-index: 50;
+      width: min(320px, calc(100vw - 28px));
+      display: none;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: rgba(255,252,244,.96);
+      box-shadow: var(--shadow);
+    }
+
+    .comment-pop.is-open { display: grid; }
+
+    .comment-pop textarea {
+      width: 100%;
+      min-height: 96px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+    }
+
+    .comment-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .comment-actions button {
+      width: auto;
+      min-width: 72px;
+      padding: 0 14px;
+      background: rgba(23,20,17,.08);
+    }
+
+    .comment-actions button.primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    @media (max-width: 860px) {
+      .slide {
+        overflow-y: auto;
+        place-items: start center;
+        padding: 22px 16px 86px;
+      }
+
+      .frame,
+      .frame.split {
+        aspect-ratio: auto;
+        min-height: calc(100vh - 120px);
+        max-height: none;
+        grid-template-columns: minmax(0, 1fr);
+        align-content: start;
+      }
+
+      h1 { font-size: clamp(48px, 17vw, 76px); }
+      h2 { font-size: clamp(34px, 11vw, 52px); }
+      .lead { font-size: 21px; }
+
+      .frame {
+        gap: 16px;
+      }
+
+      .grid-3,
+      .grid-4,
+      .grid-5,
+      .flow,
+      .compare,
+      .before-after,
+      .source-layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .step:not(:last-child)::after { display: none; }
+
+      .before-after .arrow-mid {
+        min-height: 40px;
+        transform: rotate(90deg);
+      }
+
+      .week {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 6px;
+      }
+
+      .journey {
+        gap: 7px;
+        padding: 12px;
+        margin-bottom: 16px;
+      }
+
+      .journey .node {
+        padding: 8px 12px;
+        font-size: 18px;
+      }
+
+      .journey .arrow {
+        font-size: 20px;
+      }
+
+      .controls {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 1ms !important;
+        transition-duration: 1ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main id="deck" aria-live="polite">
+    <canvas id="motion-bg"></canvas>
+
+    <section class="slide is-active" data-accent="#ff6b35" data-steps="2" data-transition="none">
+      <div class="frame split">
+        <div>
+          <h1 data-reviewable>GEO</h1>
+          <p class="lead reveal" data-step="1" data-reviewable>Generative Engine Optimization</p>
+          <p class="lead reveal" data-step="2" data-reviewable>让内容更容易被 AI 搜索理解、提取、引用。</p>
+        </div>
+        <div class="journey" data-reviewable data-morph-source="answer-flow">
+          <div class="node">AI 搜索</div>
+          <div class="node">用户问题</div>
+          <div class="arrow">↓</div>
+          <div class="node">模型理解</div>
+          <div class="arrow">↓</div>
+          <div class="node">多源检索</div>
+          <div class="arrow">↓</div>
+          <div class="node">答案生成</div>
+          <div class="arrow">↓</div>
+          <div class="node">品牌被引用</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-accent="#0f6b8f" data-steps="4" data-transition="morph" data-morph-target="answer-flow">
+      <div class="frame">
+        <div>
+          <p class="kicker" data-reviewable>从链接列表到答案引擎</p>
+          <h2 data-reviewable>为什么现在需要 GEO</h2>
+          <p class="lead reveal" data-step="1" data-reviewable>用户不再只输入关键词，而是直接问完整问题。AI 搜索会把多个来源压缩成一个答案，品牌能否进入答案，取决于内容是否清楚、可信、可抽取。</p>
+        </div>
+        <div class="grid-3">
+          <div class="card reveal" style="--stagger:0" data-step="2" data-reviewable>
+            <h3>传统搜索</h3>
+            <p>排名页 + 摘要片段<br>目标是获得点击</p>
+          </div>
+          <div class="card accent reveal" style="--stagger:1" data-step="3" data-reviewable>
+            <h3>AI 搜索</h3>
+            <p>答案生成 + 来源引用<br>目标是进入答案</p>
+          </div>
+          <div class="card reveal" style="--stagger:2" data-step="4" data-reviewable>
+            <h3>GEO 价值</h3>
+            <p>降低模型理解成本<br>提高被引用概率</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-accent="#ff6b35" data-steps="5" data-transition="soft">
+      <div class="frame">
+        <div>
+          <p class="kicker" data-reviewable>定义</p>
+          <h2 data-reviewable>什么是 GEO</h2>
+        </div>
+        <div class="statement reveal" data-step="1" data-reviewable data-focus-source="definition">
+          <strong>GEO 是一种面向 AI 搜索引擎的内容优化方式。</strong>
+          <span>目标不是“操控模型”，而是让网站内容更容易被 AI 理解、提取、验证和引用。</span>
+        </div>
+        <div class="grid-3">
+          <div class="card reveal" style="--stagger:0" data-step="2" data-reviewable>
+            <h3>面向对象</h3>
+            <p>ChatGPT、Gemini、Perplexity、AI Overviews 等生成式搜索或答案引擎。</p>
+          </div>
+          <div class="card reveal" style="--stagger:1" data-step="3" data-reviewable>
+            <h3>内容重点</h3>
+            <p>结构化、解释型、技术型内容：标题层级、步骤说明、FAQ、术语定义、对比表。</p>
+          </div>
+          <div class="card reveal" style="--stagger:2" data-step="4" data-reviewable>
+            <h3>核心预期</h3>
+            <p>不能保证一定被引用，但可显著提高“被理解”和“被引用”的概率。</p>
+          </div>
+        </div>
+        <p class="lead reveal" data-step="5" data-reviewable>一句话：把内容从“给人读的网页”，升级为“人和 AI 都能快速解析的答案资产”。</p>
+      </div>
+    </section>
+
+    <section class="slide" data-accent="#3f7d4a" data-steps="3" data-transition="focus" data-focus-target="definition">
+      <div class="frame">
+        <div>
+          <p class="kicker" data-reviewable>不是替代，而是延伸</p>
+          <h2 data-reviewable>SEO 与 GEO 的区别</h2>
+        </div>
+        <div class="compare">
+          <div class="card reveal" data-step="1" data-reviewable>
+            <h3>SEO</h3>
+            <ul>
+              <li>围绕关键词、排名、点击率</li>
+              <li>重视页面体验、外链、技术可抓取</li>
+              <li>用户从搜索结果页进入网站</li>
+              <li>衡量：排名、流量、转化</li>
+            </ul>
+          </div>
+          <div class="card accent reveal" data-step="2" data-reviewable data-morph-source="geo-method">
+            <h3>GEO</h3>
+            <ul>
+              <li>围绕问题、实体、答案和引用</li>
+              <li>重视可解释、可验证、可抽取</li>
+              <li>用户可能先看到 AI 综合答案</li>
+              <li>衡量：提及、引用、答案覆盖</li>
+            </ul>
+          </div>
+        </div>
+        <p class="lead reveal" data-step="3" data-reviewable>GEO 不绕开 SEO 基础；它把“能被搜索发现”推进到“能被答案引擎理解并引用”。</p>
+      </div>
+    </section>
+
+    <section class="slide" data-accent="#7257a8" data-steps="5" data-transition="morph" data-morph-target="geo-method">
+      <div class="frame">
+        <div>
+          <p class="kicker" data-reviewable>从网页到答案的 5 个环节</p>
+          <h2 data-reviewable>AI 搜索如何选中内容</h2>
+        </div>
+        <div class="flow">
+          <div class="step reveal" style="--stagger:0" data-step="1" data-reviewable>
+            <span class="num">01</span>
+            <h3>发现</h3>
+            <p>能被抓取<br>索引清楚</p>
+          </div>
+          <div class="step reveal" style="--stagger:1" data-step="2" data-reviewable>
+            <span class="num">02</span>
+            <h3>解析</h3>
+            <p>标题层级<br>实体明确</p>
+          </div>
+          <div class="step reveal" style="--stagger:2" data-step="3" data-reviewable>
+            <span class="num">03</span>
+            <h3>验证</h3>
+            <p>来源可信<br>证据充足</p>
+          </div>
+          <div class="step reveal" style="--stagger:3" data-step="4" data-reviewable>
+            <span class="num">04</span>
+            <h3>综合</h3>
+            <p>段落可抽取<br>答案完整</p>
+          </div>
+          <div class="step accent reveal" style="--stagger:4" data-step="5" data-reviewable>
+            <span class="num">05</span>
+            <h3>引用</h3>
+            <p>品牌/页面<br>成为来源</p>
+          </div>
+        </div>
+        <p class="lead" data-reviewable>GEO 的工作就是逐步减少每个环节的摩擦：让模型更快判断“这页在回答什么、凭什么可信、哪句话可以引用”。</p>
+      </div>
+    </section>
+
+    <section class="slide" data-accent="#ff6b35" data-steps="4" data-transition="lift">
+      <div class="frame">
+        <div>
+          <p class="kicker" data-reviewable>把内容做成可解析的答案资产</p>
+          <h2 data-reviewable>GEO 内容优化配方</h2>
+        </div>
+        <div class="grid-4">
+          <div class="card reveal" style="--stagger:0" data-step="1" data-reviewable>
+            <h3>结构清晰</h3>
+            <p>H1/H2/H3 层级明确<br>首段直接回答问题<br>步骤、列表、表格拆解</p>
+          </div>
+          <div class="card reveal" style="--stagger:1" data-step="2" data-reviewable>
+            <h3>解释充分</h3>
+            <p>定义术语和边界<br>补充适用/不适用场景<br>加入“为什么”说明</p>
+          </div>
+          <div class="card accent reveal" style="--stagger:2" data-step="3" data-reviewable>
+            <h3>证据可信</h3>
+            <p>引用权威来源<br>加入数据、案例、原始经验<br>标注作者和更新时间</p>
+          </div>
+          <div class="card reveal" style="--stagger:3" data-step="4" data-reviewable>
+            <h3>机器可读</h3>
+            <p>FAQ / HowTo / Article 结构化数据<br>实体名称一致<br>图片 alt 与表格标题清楚</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-accent="#0f6b8f" data-steps="2" data-transition="line">
+      <div class="frame">
+        <div>
+          <p class="kicker" data-reviewable>把一篇普通文章改成 GEO 友好页面</p>
+          <h2 data-reviewable>页面改造示例</h2>
+        </div>
+        <div class="before-after">
+          <div class="card reveal" data-step="1" data-reviewable>
+            <h3>改造前</h3>
+            <ul>
+              <li>标题偏营销，问题不明确</li>
+              <li>长段落堆叠，缺少小标题</li>
+              <li>没有 FAQ、定义、步骤说明</li>
+              <li>缺少来源、作者、更新时间</li>
+              <li>AI 很难摘出可引用答案</li>
+            </ul>
+          </div>
+          <div class="arrow-mid">→</div>
+          <div class="card accent reveal" data-step="2" data-reviewable>
+            <h3>改造后</h3>
+            <ul>
+              <li>标题直接对应用户问题</li>
+              <li>首段给出 2-3 句答案摘要</li>
+              <li>H2 拆成定义、方法、案例、FAQ</li>
+              <li>加入数据、来源、专家解释</li>
+              <li>补充结构化数据和内部链接</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-accent="#3f7d4a" data-steps="4" data-transition="soft" data-autoplay="timeline" data-step-ms="1150">
+      <div class="frame">
+        <div>
+          <p class="kicker" data-reviewable>从内容盘点到可见性监测</p>
+          <h2 data-reviewable>30 天落地路线图</h2>
+        </div>
+        <div class="weeks">
+          <div class="week reveal" data-step="1" data-reviewable>
+            <b>第 1 周</b>
+            <h3>问题盘点</h3>
+            <p>收集用户常问问题、销售/客服问答、搜索词和竞品答案。</p>
+          </div>
+          <div class="week reveal" data-step="2" data-reviewable>
+            <b>第 2 周</b>
+            <h3>页面优先级</h3>
+            <p>选择最适合被 AI 引用的内容：定义、教程、对比、FAQ、行业解释。</p>
+          </div>
+          <div class="week reveal" data-step="3" data-reviewable>
+            <b>第 3 周</b>
+            <h3>内容改造</h3>
+            <p>补充摘要、结构层级、证据来源、FAQ、作者信息和结构化数据。</p>
+          </div>
+          <div class="week accent reveal" data-step="4" data-reviewable>
+            <b>第 4 周</b>
+            <h3>测试监测</h3>
+            <p>用典型问题在不同 AI 搜索中测试提及、引用、链接和答案位置。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-accent="#ff6b35" data-steps="3" data-transition="soft">
+      <div class="frame">
+        <div>
+          <p class="kicker" data-reviewable>GEO 的正确预期</p>
+          <h2 data-reviewable>指标、边界与参考来源</h2>
+        </div>
+        <div class="source-layout">
+          <div>
+            <div class="card reveal" data-step="1" data-reviewable>
+              <h3>建议跟踪的指标</h3>
+              <ul>
+                <li>AI 答案中的品牌提及次数与语境</li>
+                <li>是否被作为来源链接或引用片段</li>
+                <li>高意图问题的答案覆盖率</li>
+                <li>AI 访问流量、传统 SEO 流量与转化变化</li>
+              </ul>
+            </div>
+            <div class="card reveal" data-step="2" data-reviewable style="margin-top:22px">
+              <h3>需要避免的误区</h3>
+              <ul>
+                <li>不要编造数据、虚构引用或堆砌关键词</li>
+                <li>不要把 GEO 当成“保证被 AI 引用”的承诺</li>
+                <li>不要忽略基础 SEO、页面质量和用户体验</li>
+              </ul>
+            </div>
+          </div>
+          <div class="source-box reveal" data-step="3" data-reviewable>
+            <h3>参考来源</h3>
+            <ul>
+              <li><a href="https://arxiv.org/abs/2311.09735" target="_blank" rel="noopener">Aggarwal et al., Generative Engine Optimization, arXiv:2311.09735</a></li>
+              <li><a href="https://developers.google.com/search/docs/fundamentals/ai-optimization-guide" target="_blank" rel="noopener">Google Search Central, Optimizing your website for generative AI features</a></li>
+              <li><a href="https://developers.google.com/search/docs/appearance/ai-features" target="_blank" rel="noopener">Google Search Central, AI features and your website</a></li>
+              <li><a href="https://developers.google.com/search/docs/fundamentals/creating-helpful-content" target="_blank" rel="noopener">Google Search Central, Creating helpful, reliable, people-first content</a></li>
+              <li><a href="https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data" target="_blank" rel="noopener">Google Search Central, Intro to structured data markup</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="transition-layer" aria-hidden="true"></div>
+
+  <nav class="controls" aria-label="Presenter controls">
+    <button type="button" data-action="prev" title="上一页" aria-label="上一页">←</button>
+    <span class="counter" aria-live="polite">1 / 9</span>
+    <button type="button" data-action="next" title="下一页" aria-label="下一页">→</button>
+    <button type="button" data-action="fullscreen" title="全屏" aria-label="全屏">F</button>
+    <button type="button" data-action="review" title="评论模式" aria-label="评论模式">R</button>
+    <button type="button" data-action="export" title="导出带评论 HTML" aria-label="导出带评论 HTML">⇩</button>
+  </nav>
+  <div class="progress" aria-hidden="true"><span></span></div>
+
+  <div class="comment-pop" role="dialog" aria-label="Review comment">
+    <textarea placeholder="写一条审阅评论"></textarea>
+    <div class="comment-actions">
+      <button type="button" data-comment="delete">删除</button>
+      <button type="button" data-comment="cancel">取消</button>
+      <button type="button" class="primary" data-comment="save">保存</button>
+    </div>
+  </div>
+
+  <script type="application/json" id="reviewSeed">[]</script>
+
+  <script>
+    (() => {
+      const deck = document.querySelector("#deck");
+      const slides = [...document.querySelectorAll(".slide")];
+      const canvas = document.querySelector("#motion-bg");
+      const ctx = canvas.getContext("2d");
+      const layer = document.querySelector(".transition-layer");
+      const progress = document.querySelector(".progress span");
+      const counter = document.querySelector(".counter");
+      const reviewButton = document.querySelector('[data-action="review"]');
+      const pop = document.querySelector(".comment-pop");
+      const textarea = pop.querySelector("textarea");
+      const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const storageKey = `geo-html-deck-notes:${location.pathname}`;
+
+      document.querySelectorAll("[data-reviewable]").forEach((element, index) => {
+        if (!element.dataset.reviewKey) element.dataset.reviewKey = `review-${index + 1}`;
+      });
+
+      const state = {
+        slide: 0,
+        step: 0,
+        locked: false,
+        timer: null,
+        review: false,
+        notes: readSeed(),
+        editing: null,
+        lastManualAt: 0,
+        bg: { x: 0, y: 0, zoom: 1, accent: slides[0]?.dataset.accent || "#ff6b35" }
+      };
+
+      function readSeed() {
+        try {
+          const embedded = JSON.parse(document.querySelector("#reviewSeed")?.textContent || "[]");
+          const stored = JSON.parse(localStorage.getItem(storageKey) || "null");
+          return Array.isArray(stored) ? stored : embedded;
+        } catch {
+          return [];
+        }
+      }
+
+      function saveNotes() {
+        localStorage.setItem(storageKey, JSON.stringify(state.notes));
+        renderPins();
+      }
+
+      function slideSteps(index) {
+        return Number(slides[index]?.dataset.steps || 0);
+      }
+
+      function setAccent(color) {
+        document.documentElement.style.setProperty("--accent", color);
+        state.bg.accent = color;
+      }
+
+      function render() {
+        slides.forEach((slide, index) => {
+          slide.classList.toggle("is-active", index === state.slide);
+          slide.classList.toggle("is-before", index < state.slide);
+          slide.classList.toggle("is-after", index > state.slide);
+          slide.querySelectorAll(".reveal").forEach((item) => {
+            const step = Number(item.dataset.step || 1);
+            item.classList.toggle("is-step-on", index === state.slide && step <= state.step);
+          });
+          if (index === state.slide) slide.scrollTop = 0;
+        });
+        const current = slides[state.slide];
+        setAccent(current.dataset.accent || "#ff6b35");
+        counter.textContent = `${state.slide + 1} / ${slides.length}`;
+        progress.style.width = `${((state.slide + state.step / Math.max(1, slideSteps(state.slide))) / slides.length) * 100}%`;
+        reviewButton.classList.toggle("is-on", state.review);
+        deck.classList.toggle("review-mode", state.review);
+        updateBackgroundTarget();
+        renderPins();
+        startTimeline();
+      }
+
+      function updateBackgroundTarget() {
+        const n = state.slide;
+        state.bg.tx = Math.sin(n * 1.4) * 120;
+        state.bg.ty = Math.cos(n * 1.1) * 78;
+        state.bg.tz = 1 + (n % 4) * .05;
+      }
+
+      function manual() {
+        state.lastManualAt = performance.now();
+        clearTimeout(state.timer);
+      }
+
+      function startTimeline() {
+        clearTimeout(state.timer);
+        const current = slides[state.slide];
+        if (current.dataset.autoplay !== "timeline") return;
+        if (state.step >= slideSteps(state.slide)) return;
+        if (performance.now() - state.lastManualAt < 900) return;
+        const ms = Number(current.dataset.stepMs || 1300);
+        state.timer = setTimeout(() => {
+          state.step += 1;
+          render();
+        }, ms);
+      }
+
+      async function next(isManual = true) {
+        if (state.locked) return;
+        if (isManual) manual();
+        if (state.step < slideSteps(state.slide)) {
+          state.step += 1;
+          render();
+          return;
+        }
+        if (state.slide >= slides.length - 1) return;
+        await goTo(state.slide + 1, 0, 1);
+      }
+
+      async function prev() {
+        if (state.locked) return;
+        manual();
+        if (state.step > 0) {
+          state.step -= 1;
+          render();
+          return;
+        }
+        if (state.slide <= 0) return;
+        await goTo(state.slide - 1, slideSteps(state.slide - 1), -1);
+      }
+
+      async function goTo(targetIndex, targetStep, direction) {
+        const fromSlide = slides[state.slide];
+        const toSlide = slides[targetIndex];
+        const transition = direction > 0 ? (fromSlide.dataset.transition || "soft") : "soft";
+        state.locked = true;
+        clearTimeout(state.timer);
+
+        if (transition === "focus") await focusTransition(fromSlide, toSlide);
+        else if (transition === "morph") await morphTransition(fromSlide, toSlide);
+        else if (transition === "line") await lineTransition();
+        else if (transition === "lift") await liftTransition(fromSlide);
+        else if (transition === "soft") await wait(reduceMotion ? 1 : 150);
+
+        state.slide = targetIndex;
+        state.step = targetStep;
+        render();
+        await wait(reduceMotion ? 1 : 210);
+        state.locked = false;
+      }
+
+      function wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
+
+      async function focusTransition(fromSlide, toSlide) {
+        const key = fromSlide.querySelector("[data-focus-source]")?.dataset.focusSource;
+        const source = key ? fromSlide.querySelector(`[data-focus-source="${CSS.escape(key)}"]`) : null;
+        const rect = source?.getBoundingClientRect();
+        if (!rect || reduceMotion) return;
+
+        const overlay = document.createElement("div");
+        overlay.className = "zoom-surface";
+        Object.assign(overlay.style, {
+          left: `${rect.left}px`,
+          top: `${rect.top}px`,
+          width: `${rect.width}px`,
+          height: `${rect.height}px`,
+          background: getComputedStyle(source).backgroundColor || "var(--accent)"
+        });
+        layer.appendChild(overlay);
+        overlay.getBoundingClientRect();
+        overlay.animate([
+          { left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px`, filter: "blur(0)", opacity: 1 },
+          { left: "-8vw", top: "-8vh", width: "116vw", height: "116vh", filter: "blur(18px)", opacity: .98 }
+        ], { duration: 720, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards" });
+        await wait(330);
+        toSlide.style.opacity = ".94";
+        toSlide.style.filter = "blur(8px)";
+        await wait(350);
+        overlay.animate([{ opacity: .98 }, { opacity: 0 }], { duration: 260, fill: "forwards" });
+        await wait(260);
+        overlay.remove();
+        toSlide.style.opacity = "";
+        toSlide.style.filter = "";
+      }
+
+      async function morphTransition(fromSlide, toSlide) {
+        const source = fromSlide.querySelector("[data-morph-source]");
+        const key = source?.dataset.morphSource || fromSlide.dataset.morphTarget;
+        const rect = source?.getBoundingClientRect();
+        if (!rect || !key || reduceMotion) return;
+        const target = toSlide.querySelector(`[data-morph-source="${CSS.escape(key)}"], [data-morph-target="${CSS.escape(key)}"], .card, .journey`);
+        const targetRect = target?.getBoundingClientRect() || { left: innerWidth * .2, top: innerHeight * .2, width: innerWidth * .6, height: innerHeight * .46 };
+        const overlay = document.createElement("div");
+        overlay.className = "morph-surface";
+        Object.assign(overlay.style, {
+          left: `${rect.left}px`,
+          top: `${rect.top}px`,
+          width: `${rect.width}px`,
+          height: `${rect.height}px`,
+          background: getComputedStyle(source).backgroundColor || "var(--accent)"
+        });
+        layer.appendChild(overlay);
+        overlay.getBoundingClientRect();
+        overlay.animate([
+          { left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px`, filter: "blur(0)", opacity: 1 },
+          { left: `${targetRect.left}px`, top: `${targetRect.top}px`, width: `${targetRect.width}px`, height: `${targetRect.height}px`, filter: "blur(10px)", opacity: .86 }
+        ], { duration: 760, easing: "cubic-bezier(.2,.8,.2,1)", fill: "forwards" });
+        await wait(390);
+        toSlide.style.opacity = ".92";
+        toSlide.style.filter = "blur(10px)";
+        await wait(330);
+        overlay.animate([{ opacity: .86 }, { opacity: 0 }], { duration: 260, fill: "forwards" });
+        await wait(260);
+        overlay.remove();
+        toSlide.style.opacity = "";
+        toSlide.style.filter = "";
+      }
+
+      async function lineTransition() {
+        if (reduceMotion) return;
+        const line = document.createElement("div");
+        line.className = "line-surface";
+        layer.appendChild(line);
+        await wait(720);
+        line.remove();
+      }
+
+      async function liftTransition(fromSlide) {
+        if (reduceMotion) return;
+        fromSlide.animate([
+          { transform: "translate3d(0,0,0) scale(1)", filter: "blur(0)", opacity: 1 },
+          { transform: "translate3d(0,-46px,0) scale(1.04)", filter: "blur(10px)", opacity: .1 }
+        ], { duration: 520, easing: "cubic-bezier(.2,.8,.2,1)" });
+        await wait(360);
+      }
+
+      function toggleFullScreen() {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+        else document.exitFullscreen?.();
+      }
+
+      function toggleReview() {
+        state.review = !state.review;
+        closePop();
+        render();
+      }
+
+      function noteForElement(element, event) {
+        const rect = element.getBoundingClientRect();
+        return {
+          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+          slide: state.slide,
+          selector: selectorFor(element),
+          x: (event.clientX - rect.left) / Math.max(1, rect.width),
+          y: (event.clientY - rect.top) / Math.max(1, rect.height),
+          text: ""
+        };
+      }
+
+      function selectorFor(element) {
+        if (element.id) return `#${CSS.escape(element.id)}`;
+        return `[data-review-key="${CSS.escape(element.dataset.reviewKey)}"]`;
+      }
+
+      function openPop(note, x, y) {
+        state.editing = note;
+        textarea.value = note.text || "";
+        pop.style.left = `${Math.max(14, Math.min(x, innerWidth - 334))}px`;
+        pop.style.top = `${Math.max(14, Math.min(y, innerHeight - 190))}px`;
+        pop.classList.add("is-open");
+        textarea.focus();
+      }
+
+      function closePop() {
+        state.editing = null;
+        pop.classList.remove("is-open");
+      }
+
+      function renderPins() {
+        document.querySelectorAll(".pin").forEach(pin => pin.remove());
+        state.notes.filter(note => note.slide === state.slide).forEach((note, index) => {
+          const slide = slides[note.slide];
+          const target = slide?.querySelector(note.selector) || slide;
+          const rect = target.getBoundingClientRect();
+          const pin = document.createElement("button");
+          pin.className = "pin";
+          pin.type = "button";
+          pin.textContent = String(index + 1);
+          pin.title = note.text || "审阅评论";
+          pin.style.left = `${rect.left + rect.width * note.x}px`;
+          pin.style.top = `${rect.top + rect.height * note.y}px`;
+          pin.addEventListener("click", (event) => {
+            event.stopPropagation();
+            openPop(note, event.clientX + 8, event.clientY + 8);
+          });
+          document.body.appendChild(pin);
+        });
+      }
+
+      async function exportReviewedHtml() {
+        const seed = JSON.stringify(state.notes, null, 2).replace(/</g, "\\u003c");
+        const closeTag = "<" + "/script>";
+        const replacement = `<script type="application/json" id="reviewSeed">${seed}${closeTag}`;
+        const pattern = new RegExp('<script type="application/json" id="reviewSeed">[\\s\\S]*?<\\/script>');
+        const html = document.documentElement.outerHTML.replace(pattern, replacement);
+        const full = "<!doctype html>\\n" + html;
+        const writer = window.omelette?.writeFile || window.parent?.omelette?.writeFile;
+        if (writer) {
+          await writer("GEO-HTML-Deck-reviewed.html", full);
+          return;
+        }
+        if (window.showSaveFilePicker) {
+          const handle = await showSaveFilePicker({
+            suggestedName: "GEO-HTML-Deck-reviewed.html",
+            types: [{ description: "HTML", accept: { "text/html": [".html"] } }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(full);
+          await writable.close();
+          return;
+        }
+        const blob = new Blob([full], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "GEO-HTML-Deck-reviewed.html";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      function resizeCanvas() {
+        const ratio = devicePixelRatio || 1;
+        canvas.width = Math.floor(innerWidth * ratio);
+        canvas.height = Math.floor(innerHeight * ratio);
+        canvas.style.width = `${innerWidth}px`;
+        canvas.style.height = `${innerHeight}px`;
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        renderPins();
+      }
+
+      function drawBackground(time) {
+        state.bg.x += ((state.bg.tx || 0) - state.bg.x) * .018;
+        state.bg.y += ((state.bg.ty || 0) - state.bg.y) * .018;
+        state.bg.zoom += ((state.bg.tz || 1) - state.bg.zoom) * .018;
+        ctx.clearRect(0, 0, innerWidth, innerHeight);
+        ctx.save();
+        ctx.translate(innerWidth / 2 + state.bg.x, innerHeight / 2 + state.bg.y);
+        ctx.scale(state.bg.zoom, state.bg.zoom);
+        ctx.translate(-innerWidth / 2, -innerHeight / 2);
+
+        const step = 58;
+        ctx.strokeStyle = "rgba(23,20,17,.055)";
+        ctx.lineWidth = 1;
+        for (let x = -step; x < innerWidth + step; x += step) {
+          ctx.beginPath();
+          ctx.moveTo(x + Math.sin(time / 2600 + x) * 4, -step);
+          ctx.lineTo(x, innerHeight + step);
+          ctx.stroke();
+        }
+        for (let y = -step; y < innerHeight + step; y += step) {
+          ctx.beginPath();
+          ctx.moveTo(-step, y);
+          ctx.lineTo(innerWidth + step, y + Math.cos(time / 2800 + y) * 4);
+          ctx.stroke();
+        }
+        ctx.fillStyle = state.bg.accent;
+        const density = 28 + state.slide * 3;
+        for (let i = 0; i < density; i++) {
+          const x = (i * 173 + time * .012) % (innerWidth + 220) - 110;
+          const y = (i * 97 + Math.sin(time / 1800 + i) * 24) % (innerHeight + 180) - 90;
+          ctx.globalAlpha = .032 + (i % 5) * .01;
+          ctx.beginPath();
+          ctx.arc(x, y, 1.4 + (i % 4), 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+        requestAnimationFrame(drawBackground);
+      }
+
+      document.addEventListener("keydown", (event) => {
+        if (event.target === textarea) return;
+        if (["ArrowRight", "PageDown", " "].includes(event.key)) {
+          event.preventDefault();
+          next();
+        } else if (["ArrowLeft", "PageUp"].includes(event.key)) {
+          event.preventDefault();
+          prev();
+        } else if (event.key.toLowerCase() === "f") {
+          toggleFullScreen();
+        } else if (event.key.toLowerCase() === "r") {
+          toggleReview();
+        } else if (event.key === "Escape") {
+          closePop();
+        }
+      });
+
+      deck.addEventListener("click", (event) => {
+        if (event.target.closest(".controls, .comment-pop, .pin, a")) return;
+        if (state.review) {
+          const target = event.target.closest("[data-reviewable]");
+          if (!target) return;
+          event.stopPropagation();
+          openPop(noteForElement(target, event), event.clientX + 8, event.clientY + 8);
+          return;
+        }
+        next();
+      });
+
+      document.querySelector(".controls").addEventListener("click", (event) => {
+        const action = event.target.closest("button")?.dataset.action;
+        if (!action) return;
+        if (action === "next") next();
+        if (action === "prev") prev();
+        if (action === "fullscreen") toggleFullScreen();
+        if (action === "review") toggleReview();
+        if (action === "export") exportReviewedHtml().catch(console.error);
+      });
+
+      pop.addEventListener("click", (event) => {
+        const action = event.target.closest("button")?.dataset.comment;
+        if (!action) return;
+        if (action === "cancel") closePop();
+        if (action === "delete" && state.editing) {
+          state.notes = state.notes.filter(note => note.id !== state.editing.id);
+          saveNotes();
+          closePop();
+        }
+        if (action === "save" && state.editing) {
+          const existing = state.notes.find(note => note.id === state.editing.id);
+          state.editing.text = textarea.value.trim();
+          if (!existing) state.notes.push(state.editing);
+          saveNotes();
+          closePop();
+        }
+      });
+
+      addEventListener("resize", resizeCanvas);
+      resizeCanvas();
+      render();
+      requestAnimationFrame(drawBackground);
+    })();
+  </script>
+</body>
+</html>

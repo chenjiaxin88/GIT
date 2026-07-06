@@ -1,0 +1,8 @@
+# Local-only long-term context and raw exports.
+private-context/
+raw-exports/
+*.zip
+conversations.json
+memories.json
+users.json
+

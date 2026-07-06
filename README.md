@@ -1,3 +1,5 @@
 # 陈嘉鑫的人生导师
 
-Initial repository.
+这是一个本地长期上下文仓库，用来沉淀个人画像、沟通偏好、项目脉络、长期目标和重要聊天记录索引。
+
+敏感资料默认放在 `private-context/`，并通过 `.gitignore` 阻止误传到 GitHub。

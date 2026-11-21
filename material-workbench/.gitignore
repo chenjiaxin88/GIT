@@ -1,0 +1,11 @@
+/snapshot/
+/runtime/
+/.*.员工站本机状态/
+/login/
+/state/
+*.zip
+*.pfx
+*.p12
+*.pem
+*.key
+.env*

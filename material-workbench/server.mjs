@@ -24,12 +24,28 @@ function localInside(root, other) {
   return !relative || (!relative.startsWith('..' + path.sep) && relative !== '..' && !path.isAbsolute(relative));
 }
 
+const loginStyle = `
+  @font-face { font-family: "Anthropic Sans"; src: local("Anthropic Sans Web Text Regular"), local("AnthropicSansWebWeb-TextRegular"), local("Anthropic Sans Web Display Light"); font-weight: 400; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #faf9f5; color: #141413; font: 16px/1.5 "Anthropic Sans", system-ui, "Microsoft YaHei", sans-serif; }
+  main { width: min(100% - 40px, 336px); margin: clamp(60px, 16vh, 144px) auto 40px; }
+  h1 { margin: 0 0 28px; font-size: 25px; font-weight: 650; }
+  form { display: grid; gap: 10px; }
+  label { font-size: 14px; font-weight: 600; }
+  input, button { width: 100%; min-height: 44px; border-radius: 7px; padding: 8px 12px; font: inherit; }
+  input { border: 1px solid #b8b4a9; color: inherit; background: #fff; }
+  button { margin-top: 4px; border: 0; background: #a7472d; color: #fff; cursor: pointer; }
+  button:hover { background: #8e3b25; }
+  :focus-visible { outline: 2px solid #a7472d; outline-offset: 3px; }
+  [role="status"] { color: #9e2e2e; margin: 16px 0 0; font-size: 14px; }
+`;
+
 function page(message = '') {
   return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>顿展素材工作台 · 员工登录</title><style>' +
-    '*{box-sizing:border-box}body{background:#faf8f4;color:#342c27;font:16px/1.6 system-ui,"Microsoft YaHei",sans-serif;margin:0}main{max-width:440px;margin:12vh auto;padding:24px}h1{font-size:24px}label{display:block;margin:24px 0 5px}input,button{width:100%;font:inherit;border:1px solid #ab9f93;border-radius:6px;padding:10px}button{background:#874e39;color:white;margin-top:15px;cursor:pointer}small{color:#6b5b51}</style></head><body><main><small>顿展素材工作台</small><h1>打开我的制作图词</h1><p>使用负责人单独发给你的激活链接或激活码。</p>' +
+    loginStyle + '</style></head><body><main><h1>素材工作台</h1>' +
+    '<form action="/activate" method="post"><label for="code">本人激活码</label><input id="code" name="code" type="password" autocomplete="off" maxlength="43" required><button>进入我的资料</button></form>' +
     (message ? '<p role="status">' + message + '</p>' : '') +
-    '<form action="/activate" method="post"><label for="code">本人激活码</label><input id="code" name="code" type="password" autocomplete="off" maxlength="43" required><button>进入我的资料</button></form></main><script>' +
-    fragmentScript + '</script></body></html>';
+    '</main><script>' + fragmentScript + '</script></body></html>';
 }
 
 function browserRange(header, size) {

@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="素材工作台公开演示。体验按制作人领取参考图与分段提示词。">
+  <title>素材工作台 · 公开演示</title>
+  <style>
+    :root { color-scheme: light; --ink:#252722; --muted:#5d6058; --accent:#854732; --ground:#f6f4ed; --panel:#fffdf8; --line:#ddd9d0; }
+    * { box-sizing:border-box }
+    body { margin:0; min-width:0; font:16px/1.65 "Instrument Sans","Microsoft YaHei UI","PingFang SC",system-ui,sans-serif; color:var(--ink); background:var(--ground) }
+    a { color:var(--accent); text-underline-offset:.18em }
+    button { font:inherit; color:inherit; cursor:pointer }
+    :focus-visible { outline:2px solid #465e4e; outline-offset:3px }
+    .wrap { width:min(1088px,calc(100% - 48px)); margin-inline:auto }
+    header { border-bottom:1px solid var(--line); background:var(--panel) }
+    header .wrap { min-height:62px; display:flex; align-items:center; justify-content:space-between; gap:16px }
+    .brand { display:flex; align-items:center; gap:10px; font-weight:700 }
+    .brand svg { width:24px; height:24px; color:var(--accent) }
+    header a { font-size:14px }
+    .intro { padding-block:42px 32px; display:grid; grid-template-columns:1fr auto; align-items:end; gap:24px }
+    .eyebrow { margin:0; font-size:14px; color:var(--accent); font-weight:700 }
+    h1 { margin:4px 0 8px; font-size:clamp(30px,5vw,50px); line-height:1.19; letter-spacing:-.035em }
+    .intro p:last-child { margin:0; max-width:38em; color:var(--muted) }
+    .chooser { display:flex; flex-wrap:wrap; gap:8px; margin:0; padding:0; border:0 }
+    .chooser legend { color:var(--muted); font-size:14px; margin:0 0 6px; padding:0 }
+    .chooser button { padding:7px 13px; border:1px solid var(--line); border-radius:6px; background:var(--panel); font-size:14px }
+    .chooser button[aria-pressed="true"] { color:#fff; background:var(--accent); border-color:var(--accent) }
+    .desk { display:grid; grid-template-columns: minmax(220px, .35fr) minmax(0, 1fr); min-height:420px; gap:0; border:1px solid var(--line); border-radius:10px; background:var(--panel); overflow:hidden }
+    .queue { padding:24px 20px; border-right:1px solid var(--line); background:#f8f6f0 }
+    .queue h2 { margin:0; font-size:20px }
+    .queue p { margin:2px 0 15px; color:var(--muted); font-size:14px }
+    .item { display:block; text-align:left; width:100%; background:transparent; border:0; border-bottom:1px solid var(--line); padding:11px 10px; line-height:1.5 }
+    .item[aria-pressed="true"] { background:#efe6db; border-radius:5px; border-color:transparent; box-shadow:inset 2px 0 var(--accent) }
+    .item small { display:block; color:var(--muted); font-size:13px }
+    .item strong { font-weight:600; font-size:15px }
+    .detail { padding:24px }
+    .detail h2 { margin:0; font-size:24px; line-height:1.35 }
+    .detail > p { margin:3px 0 22px; color:var(--muted); font-size:14px }
+    .materials { display:grid; grid-template-columns:minmax(152px,.52fr) minmax(0,1fr); gap:22px }
+    figure { margin:0 }
+    figure svg { width:100%; display:block; border-radius:8px; border:1px solid rgba(40,48,39,.14) }
+    figcaption { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; margin-top:6px; gap:3px 8px; color:var(--muted); font-size:13px }
+    .instruction { align-self:start; border-top:1px solid var(--line); padding-top:10px }
+    .toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px }
+    .toolbar h3 { font-size:15px; margin:0 }
+    #copy { font-size:14px; color:white; border:0; border-radius:6px; background:var(--accent); padding:6px 10px }
+    #prompt { font:inherit; font-size:15px; margin:12px 0 0; white-space:pre-wrap; overflow-wrap:anywhere }
+    #feedback { display:block; min-height:1.4em; color:var(--muted); font-size:13px; margin-top:6px }
+    footer { margin-block:23px 36px; color:var(--muted); font-size:14px }
+    footer p { margin:0; max-width:47em }
+    @media(max-width:740px) {
+      .wrap { width:calc(100% - 32px) }
+      .intro { grid-template-columns:1fr; padding-block:30px 24px; gap:16px }
+      .desk { grid-template-columns:1fr }
+      .queue { border-right:0; border-bottom:1px solid var(--line) }
+      .queue, .detail { padding:18px }
+      .queue h2 { font-size:18px }
+    }
+    @media(max-width:440px) {
+      .materials { grid-template-columns:1fr; gap:17px }
+      figure svg { max-width:255px }
+      figcaption { max-width:255px }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m5 16 4-4 3 3 3-4 4 5"/><circle cx="10" cy="8.5" r="1"/></svg><span>素材工作台</span></div>
+      <a href="https://github.com/chenjiaxin88/GIT/tree/main/material-workbench">部署说明</a>
+    </div>
+  </header>
+  <main class="wrap">
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">公开演示 · 虚构任务</p>
+        <h1 id="page-title">按任务领取制作图词</h1>
+        <p>正式员工站使用同一个公司网址。每位制作人激活后进入自己的任务列表，按条领取原片、参考图和分段提示词。选择一个演示身份，试试切换任务与复制提示词。</p>
+      </div>
+      <fieldset class="chooser">
+        <legend>选择演示身份</legend>
+        <button type="button" data-person="0" aria-pressed="true">示例制作人 A</button>
+        <button type="button" data-person="1" aria-pressed="false">示例制作人 B</button>
+      </fieldset>
+    </section>
+    <section class="desk" aria-label="任务领取演示">
+      <aside class="queue" aria-label="演示任务列表">
+        <h2>我的任务</h2>
+        <p id="queue-summary" aria-live="polite"></p>
+        <div id="items"></div>
+      </aside>
+      <article class="detail" aria-labelledby="task-title">
+        <h2 id="task-title"></h2>
+        <p id="task-meta"></p>
+        <div class="materials">
+          <figure>
+            <svg id="reference" viewBox="0 0 300 240" role="img" aria-label="虚构参考图线稿" xmlns="http://www.w3.org/2000/svg">
+              <rect id="art-bg" width="300" height="240" fill="#f2e3ca"/>
+              <circle id="art-circle" cx="191" cy="96" r="65" fill="#e8c99d"/>
+              <path d="M27 186h246M27 197h246" stroke="#252722" stroke-opacity=".27" fill="none"/>
+              <g id="art-subject" fill="none" stroke="#252722" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></g>
+            </svg>
+            <figcaption><span>参考图 · 示例线稿</span><a id="download" download>下载示意图</a></figcaption>
+          </figure>
+          <section class="instruction" aria-labelledby="prompt-title">
+            <div class="toolbar"><h3 id="prompt-title">视频提示词</h3><button id="copy" type="button">复制提示词</button></div>
+            <pre id="prompt"></pre>
+            <span id="feedback" role="status"></span>
+          </section>
+        </div>
+      </article>
+    </section>
+    <noscript><p>启用 JavaScript 后可在此切换示例任务。</p></noscript>
+  </main>
+  <footer class="wrap">
+    <p>演示中的身份、任务和图词均为虚构。实际登录、成员隔离和素材取用由公司内网员工站提供。 <a href="https://github.com/chenjiaxin88/GIT/tree/main/material-workbench">查看部署说明</a></p>
+  </footer>
+  <script>
+    const examples = [
+      [
+        {id:'A-01',title:'柠檬茶 · 从落冰到注茶',timing:'6 秒 · 9:16',palette:['#f2e3ca','#e8c99d'],shape:'M100 76h100l-10 102h-80z M104 100h92 M121 131l17-6 7 18-19 5z M152 139l14-8 9 15-17 9z M165 78l18-36h22',prompt:'6 秒竖屏，固定近景，透明玻璃杯置于浅木桌。0–2 秒，两块冰依次掉进空杯，保留真实碰撞声。2–5 秒，从右上向杯中注入淡琥珀色茶汤，液面自然上升到七分满。5–6 秒，倒茶动作结束，停在杯壁细小水珠，背景保持虚化。'},
+        {id:'A-02',title:'醒来咖啡 · 杯口拉花',timing:'5 秒 · 9:16',palette:['#eee0d2','#dcbda7'],shape:'M90 103c0-16 109-16 109 0s-109 16-109 0z M90 103c4 49 19 67 54 67s52-18 55-67 M199 112c56-14 43 32-4 28 M124 106c9-16 16-6 20-4 5-2 11-12 19 4l-19 9z',prompt:'5 秒竖屏，俯拍杯口。前 2 秒，手持奶缸从画面上沿进入，细流落在中央。2–4 秒，拉出轮廓自然的单层心形，液面有细微波纹。最后 1 秒奶缸退出画面，光线和焦点保持在杯缘。'}
+      ],
+      [
+        {id:'B-01',title:'棉布袋 · 展示容量',timing:'6 秒 · 9:16',palette:['#e4e9de','#c7d5bf'],shape:'M99 95h102l9 83H90z M121 96V71a29 29 0 0 1 58 0v25 M122 137h55 M122 148h43',prompt:'6 秒竖屏，桌面略俯拍。0–2 秒，双手展开奶油白棉布袋，把袋口向镜头敞开。2–5 秒，把一本薄书和一个小纸盒逐件放入，布面随重量自然垂下。最后 1 秒提起袋子，停在提手和袋身的完整轮廓。'},
+        {id:'B-02',title:'活页本 · 翻到空白页',timing:'5 秒 · 9:16',palette:['#e7e5ed','#cbc6dd'],shape:'M89 64h135v108H89z M102 64v108 M81 82h16 M81 108h16 M81 134h16 M140 89h58 M140 106h58 M140 123h58 M140 140h34',prompt:'5 秒竖屏，机位在桌面正上方。前 2 秒，左手扶住活页本的装订边，右手翻开封面。中间 2 秒，翻过一张内页，保持纸张自然弯曲和轻微摩擦声。最后 1 秒，手退出画面，停在未落笔的空白页。'}
+      ]
+    ];
+    const personButtons = [...document.querySelectorAll('[data-person]')];
+    const items = document.getElementById('items');
+    const summary = document.getElementById('queue-summary');
+    const prompt = document.getElementById('prompt');
+    const feedback = document.getElementById('feedback');
+    const reference = document.getElementById('reference');
+    const download = document.getElementById('download');
+    let person = 0;
+    function showTask(index) {
+      const task = examples[person][index];
+      [...items.children].forEach((button, i) => button.setAttribute('aria-pressed', String(i === index)));
+      document.getElementById('task-title').textContent = task.title;
+      document.getElementById('task-meta').textContent = task.id + ' · ' + task.timing;
+      document.getElementById('art-bg').setAttribute('fill', task.palette[0]);
+      document.getElementById('art-circle').setAttribute('fill', task.palette[1]);
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', task.shape);
+      document.getElementById('art-subject').replaceChildren(path);
+      download.href = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(reference));
+      download.download = '示意图-' + task.id + '.svg';
+      prompt.textContent = task.prompt;
+      feedback.textContent = '';
+    }
+    function showPerson(index) {
+      person = index;
+      personButtons.forEach((button, i) => button.setAttribute('aria-pressed', String(i === index)));
+      summary.textContent = personButtons[index].textContent + ' · ' + examples[index].length + ' 条';
+      items.replaceChildren(...examples[index].map((task, taskIndex) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'item';
+        const id = document.createElement('small');
+        const title = document.createElement('strong');
+        id.textContent = task.id;
+        title.textContent = task.title;
+        button.append(id,title);
+        button.addEventListener('click', () => showTask(taskIndex));
+        return button;
+      }));
+      showTask(0);
+    }
+    personButtons.forEach((button, index) => button.addEventListener('click', () => showPerson(index)));
+    document.getElementById('copy').addEventListener('click', async () => {
+      const text = prompt.textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        if (prompt.textContent === text) feedback.textContent = '已复制完整提示词';
+      } catch {
+        if (prompt.textContent !== text) return;
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(prompt);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        feedback.textContent = '已选中提示词，可用系统复制命令';
+      }
+    });
+    showPerson(0);
+  </script>
+</body>
+</html>
